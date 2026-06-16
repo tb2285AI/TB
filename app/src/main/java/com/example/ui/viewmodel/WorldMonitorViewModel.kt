@@ -59,7 +59,7 @@ class WorldMonitorViewModel(application: Application) : AndroidViewModel(applica
         private set
 
     // Live Geopolitical Feed Configurations
-    var newsFeedMode by mutableStateOf("LOCAL") // "LOCAL" or "LIVE"
+    var newsFeedMode by mutableStateOf("LIVE") // "LOCAL" or "LIVE"
     var selectedLiveChannel by mutableStateOf("BBC Global") // e.g. BBC Global, CNN Intelligence, Al Jazeera, etc.
     var isFetchingLiveNews by mutableStateOf(false)
     var liveNewsError by mutableStateOf<String?>(null)
