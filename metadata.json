@@ -1,0 +1,6 @@
+{
+  "name": "World Monitor",
+  "description": "Dynamic world monitor and AI geopolitical news analysis application powered by Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
