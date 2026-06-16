@@ -278,12 +278,120 @@ fun SystemMonitorLayout(viewModel: WorldMonitorViewModel) {
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Search Bar and Filters
+        // Segmented Feeds Controller: Local Scan vs. Live Satellite
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (viewModel.newsFeedMode == "LOCAL") CyberCyan.copy(alpha = 0.15f) else DarkSurface)
+                    .border(BorderStroke(1.dp, if (viewModel.newsFeedMode == "LOCAL") CyberCyan else GridLine), RoundedCornerShape(12.dp))
+                    .clickable { viewModel.newsFeedMode = "LOCAL" }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Local scan",
+                        tint = if (viewModel.newsFeedMode == "LOCAL") CyberCyan else TacticalGray,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "LOCAL SCANNER",
+                        color = if (viewModel.newsFeedMode == "LOCAL") CyberCyan else TacticalGray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.SansSerif,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (viewModel.newsFeedMode == "LIVE") CyberGreen.copy(alpha = 0.15f) else DarkSurface)
+                    .border(BorderStroke(1.dp, if (viewModel.newsFeedMode == "LIVE") CyberGreen else GridLine), RoundedCornerShape(12.dp))
+                    .clickable {
+                        viewModel.newsFeedMode = "LIVE"
+                        viewModel.fetchLiveNews()
+                    }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Live feed",
+                        tint = if (viewModel.newsFeedMode == "LIVE") CyberGreen else TacticalGray,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "LIVE SATELLITE",
+                        color = if (viewModel.newsFeedMode == "LIVE") CyberGreen else TacticalGray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.SansSerif,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // If LIVE, show sources row
+        if (viewModel.newsFeedMode == "LIVE") {
+            val liveChannels = listOf("BBC Global", "CNN Intelligence", "Al Jazeera", "Sovereign General", "Cyber & Tech Matrix")
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(liveChannels) { channel ->
+                    val isSel = viewModel.selectedLiveChannel == channel
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSel) CyberGreen else DarkSurfaceElevated)
+                            .border(BorderStroke(1.dp, if (isSel) CyberGreen else GridLine), RoundedCornerShape(20.dp))
+                            .clickable {
+                                viewModel.selectedLiveChannel = channel
+                                viewModel.fetchLiveNews()
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = channel.uppercase(),
+                            color = if (isSel) Purple40 else Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.SansSerif,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        // Search Bar and Filters Case
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(DarkSurface)
+                .border(BorderStroke(1.dp, GridLine), RoundedCornerShape(12.dp))
                 .padding(8.dp)
         ) {
             OutlinedTextField(
@@ -295,17 +403,17 @@ fun SystemMonitorLayout(viewModel: WorldMonitorViewModel) {
                     .testTag("search_news_input"),
                 placeholder = {
                     Text(
-                        "Search decrypted news summaries...",
+                        if (viewModel.newsFeedMode == "LIVE") "Search live geopolitical headlines..." else "Search local news summaries...",
                         color = TacticalGray.copy(alpha = 0.5f),
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.SansSerif
                     )
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = CyberCyan,
+                        tint = if (viewModel.newsFeedMode == "LIVE") CyberGreen else CyberCyan,
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -324,12 +432,12 @@ fun SystemMonitorLayout(viewModel: WorldMonitorViewModel) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    focusedBorderColor = CyberCyan,
+                    focusedBorderColor = if (viewModel.newsFeedMode == "LIVE") CyberGreen else CyberCyan,
                     unfocusedBorderColor = GridLine,
                     focusedContainerColor = DarkBackground,
                     unfocusedContainerColor = DarkBackground
                 ),
-                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp, fontFamily = FontFamily.SansSerif),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() })
             )
@@ -343,16 +451,17 @@ fun SystemMonitorLayout(viewModel: WorldMonitorViewModel) {
             ) {
                 items(categories) { cat ->
                     val isCatSelected = viewModel.selectedCategoryFilter == cat
+                    val accentCol = if (viewModel.newsFeedMode == "LIVE") CyberGreen else CyberCyan
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (isCatSelected) CyberGreen.copy(alpha = 0.2f) else Color.Transparent)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isCatSelected) accentCol.copy(alpha = 0.15f) else Color.Transparent)
                             .clickable { viewModel.selectedCategoryFilter = cat }
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                             .drawBehind {
                                 if (isCatSelected) {
                                     drawLine(
-                                        color = CyberGreen,
+                                        color = accentCol,
                                         start = Offset(0f, size.height),
                                         end = Offset(size.width, size.height),
                                         strokeWidth = 2.dp.toPx()
@@ -362,64 +471,169 @@ fun SystemMonitorLayout(viewModel: WorldMonitorViewModel) {
                     ) {
                         Text(
                             text = cat.uppercase(),
-                            color = if (isCatSelected) CyberGreen else TacticalGray,
+                            color = if (isCatSelected) accentCol else TacticalGray,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.SansSerif,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // News List Display
-        val filteredNews = viewModel.getFilteredNews()
-        if (filteredNews.isEmpty()) {
+        // News List Display & Loading/Errors Handling
+        if (viewModel.newsFeedMode == "LIVE" && viewModel.isFetchingLiveNews) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(DarkSurface)
+                    .border(BorderStroke(1.dp, GridLine), RoundedCornerShape(16.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = CyberGreen,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "ESTABLISHING LIVE FEED LINK...",
+                        color = CyberGreen,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Downloading telemetry for '${viewModel.selectedLiveChannel.uppercase()}'",
+                        color = TacticalGray,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        } else if (viewModel.newsFeedMode == "LIVE" && viewModel.liveNewsError != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(DarkSurface)
+                    .border(BorderStroke(1.dp, CyberRed), RoundedCornerShape(16.dp))
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = "Alerts Empty",
-                        tint = CyberAmber,
+                        contentDescription = "Error",
+                        tint = CyberRed,
                         modifier = Modifier.size(36.dp)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "ZERO ANOMALIES DETECTED FOR SELECTION",
-                        color = Color.White,
-                        fontSize = 12.sp,
+                        "Satellite link failed to resolve",
+                        color = CyberRed,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = FontFamily.SansSerif
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Adjust search query or filter switches to restore feed.",
+                        text = viewModel.liveNewsError ?: "",
                         color = TacticalGray,
                         fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = FontFamily.SansSerif,
                         textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = { viewModel.fetchLiveNews() },
+                        modifier = Modifier.testTag("news_retry_button"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CyberRed.copy(alpha = 0.15f),
+                            contentColor = CyberRed
+                        ),
+                        border = BorderStroke(1.dp, CyberRed.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Retry Icon",
+                                tint = CyberRed,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "RETRY SATELLITE LINK",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.SansSerif,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(filteredNews, key = { it.id }) { news ->
-                    NewsItemCard(
-                        event = news,
-                        onAnalyze = { viewModel.runNewsAnalysis(news) }
-                    )
+            val filteredNews = viewModel.getFilteredNews()
+            if (filteredNews.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurface)
+                        .border(BorderStroke(1.dp, GridLine), RoundedCornerShape(12.dp))
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Alerts Empty",
+                            tint = CyberAmber,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "ZERO ANOMALIES DETECTED FOR SELECTION",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "Adjust search query or filter switches to restore feed.",
+                            color = TacticalGray,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.SansSerif,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredNews, key = { it.id }) { news ->
+                        NewsItemCard(
+                            event = news,
+                            onAnalyze = { viewModel.runNewsAnalysis(news) }
+                        )
+                    }
                 }
             }
         }

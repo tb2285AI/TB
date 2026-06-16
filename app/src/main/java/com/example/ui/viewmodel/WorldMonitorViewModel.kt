@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.api.NewsArticle
+import com.example.data.api.NewsRetrofitClient
 import com.example.data.database.IntelBriefingEntity
 import com.example.data.repository.IntelRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,6 +58,13 @@ class WorldMonitorViewModel(application: Application) : AndroidViewModel(applica
     var newsEvents by mutableStateOf(emptyList<NewsEvent>())
         private set
 
+    // Live Geopolitical Feed Configurations
+    var newsFeedMode by mutableStateOf("LOCAL") // "LOCAL" or "LIVE"
+    var selectedLiveChannel by mutableStateOf("BBC Global") // e.g. BBC Global, CNN Intelligence, Al Jazeera, etc.
+    var isFetchingLiveNews by mutableStateOf(false)
+    var liveNewsError by mutableStateOf<String?>(null)
+    var liveNewsEvents by mutableStateOf(emptyList<NewsEvent>())
+
     // Search & Filter state
     var selectedCategoryFilter by mutableStateOf("All")
     var selectedSeverityFilter by mutableStateOf("All")
@@ -80,6 +89,79 @@ class WorldMonitorViewModel(application: Application) : AndroidViewModel(applica
     init {
         resetMetrics()
         resetNews()
+        fetchLiveNews()
+    }
+
+    private fun NewsArticle.toNewsEvent(categoryName: String): NewsEvent {
+        val uniqueId = "live_" + this.url.hashCode().toString()
+        val formattedDate = if (this.publishedAt.length >= 16) {
+            this.publishedAt.replace("T", " ").substring(0, 16)
+        } else {
+            this.publishedAt
+        }
+        val titleLower = this.title.lowercase()
+        val severityLevel = when {
+            titleLower.contains("nuclear") || titleLower.contains("missile") ||
+            titleLower.contains("attack") || titleLower.contains("bomb") ||
+            titleLower.contains("crisis") || titleLower.contains("kill") ||
+            titleLower.contains("deadly") || titleLower.contains("critical") ||
+            titleLower.contains("war") || titleLower.contains("military") ||
+            titleLower.contains("clash") -> "Critical"
+
+            titleLower.contains("warn") || titleLower.contains("threat") ||
+            titleLower.contains("cyber") || titleLower.contains("arrest") ||
+            titleLower.contains("dispute") || titleLower.contains("protest") ||
+            titleLower.contains("ban") || titleLower.contains("tariff") ||
+            titleLower.contains("hacking") || titleLower.contains("spy") -> "Warning"
+
+            else -> "Info"
+        }
+        val summaryTxt = this.description ?: this.content ?: "Strategic global bulletin decrypted from satellite telemetry networks."
+        val sourceName = this.source?.name ?: "Global Satellite"
+        return NewsEvent(
+            id = uniqueId,
+            title = this.title,
+            category = categoryName,
+            date = formattedDate,
+            severity = severityLevel,
+            summary = summaryTxt,
+            location = sourceName,
+            activeSensors = "LIVE-SAT-DECRYPT, SRC: $sourceName"
+        )
+    }
+
+    fun fetchLiveNews() {
+        if (isFetchingLiveNews) return
+        isFetchingLiveNews = true
+        liveNewsError = null
+        viewModelScope.launch {
+            try {
+                val response = when (selectedLiveChannel) {
+                    "BBC Global" -> NewsRetrofitClient.service.getSourceNews("bbc-news")
+                    "CNN Intelligence" -> NewsRetrofitClient.service.getSourceNews("cnn")
+                    "Al Jazeera" -> NewsRetrofitClient.service.getSourceNews("al-jazeera-english")
+                    "Sovereign General" -> NewsRetrofitClient.service.getTopHeadlines("general")
+                    "Cyber & Tech Matrix" -> NewsRetrofitClient.service.getTopHeadlines("technology")
+                    else -> NewsRetrofitClient.service.getSourceNews("bbc-news")
+                }
+                if (response.status == "ok" && response.articles != null) {
+                    val mappedCategory = when (selectedLiveChannel) {
+                        "Cyber & Tech Matrix" -> "Cybersecurity"
+                        "Sovereign General" -> "Geopolitics"
+                        else -> "Geopolitics"
+                    }
+                    liveNewsEvents = response.articles.map { article ->
+                        article.toNewsEvent(mappedCategory)
+                    }
+                } else {
+                    liveNewsError = "Telemetry error: API state status ${response.status}"
+                }
+            } catch (e: Exception) {
+                liveNewsError = "Network offline or satellite connection lost: ${e.localizedMessage}"
+            } finally {
+                isFetchingLiveNews = false
+            }
+        }
     }
 
     fun resetMetrics() {
@@ -347,7 +429,8 @@ class WorldMonitorViewModel(application: Application) : AndroidViewModel(applica
 
     // Filtered helper lists
     fun getFilteredNews(): List<NewsEvent> {
-        return newsEvents.filter { event ->
+        val newsToFilter = if (newsFeedMode == "LIVE") liveNewsEvents else newsEvents
+        return newsToFilter.filter { event ->
             val matchesCategory = selectedCategoryFilter == "All" || event.category.equals(selectedCategoryFilter, ignoreCase = true)
             val matchesSeverity = selectedSeverityFilter == "All" || event.severity.equals(selectedSeverityFilter, ignoreCase = true)
             val matchesQuery = searchQuery.isEmpty() ||
